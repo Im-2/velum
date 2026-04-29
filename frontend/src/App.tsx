@@ -450,9 +450,12 @@ function Dashboard({ goBack }: { goBack: () => void }) {
         </div>
       </div>
 
-      <footer className="mt-auto pt-8 flex justify-between text-[10px] md:text-xs text-terminal-dim border-t border-terminal-border">
-        <div>&gt; CONNECTION SECURE</div>
-        <div>v1.0.0-rc.2</div>
+      <footer className="mt-auto pt-8 grid grid-cols-3 text-[10px] md:text-xs text-terminal-dim border-t border-terminal-border items-center">
+        <div className="text-left">&gt; CONNECTION SECURE</div>
+        <div className="text-center">
+          built by <a href="https://x.com/Nuelcrypt" target="_blank" rel="noreferrer" className="text-terminal-yellow hover:underline transition-colors">nuelcrypt</a>
+        </div>
+        <div className="text-right">v1.0.0-rc.2</div>
       </footer>
       </div>
     </div>
