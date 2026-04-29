@@ -469,7 +469,7 @@ function AboutSection() {
         // Unroll when visible, roll back when it leaves viewport
         setIsUnrolled(entry.isIntersecting);
       },
-      { threshold: 0.3 }
+      { threshold: 0.05, rootMargin: '100px' }
     );
 
     if (sectionRef.current) {
