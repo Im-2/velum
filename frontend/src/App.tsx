@@ -14,7 +14,7 @@ const INITIAL_TXS = [
 ];
 
 function Dashboard({ goBack }: { goBack: () => void }) {
-  const [uptime, setUptime] = useState(843757);
+
   const [sendAmount, setSendAmount] = useState('');
   const [sendTo, setSendTo] = useState('');
   const [selectedToken, setSelectedToken] = useState('VLM');
@@ -65,10 +65,7 @@ function Dashboard({ goBack }: { goBack: () => void }) {
     }
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => setUptime(prev => prev + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
+
 
   const connectWallet = async () => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
