@@ -7,6 +7,14 @@ export default defineConfig({
     react()
   ],
   define: {
-    global: 'globalThis'
+    global: 'globalThis',
+    'process.env': {}
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer',
+      events: 'events',
+      util: 'util'
+    }
   }
 })
