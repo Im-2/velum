@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserProvider, Contract, ethers } from 'ethers';
+import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
+import './config/appkit';
+
 
 const STEALTH_VLM_ADDRESS = "0x2e6D45aFeA5E7fd4e4b1c851aB8aBd84E51e9F6B";
 const STEALTH_ABI = [
@@ -25,11 +28,21 @@ function Dashboard({ goBack }: { goBack: () => void }) {
   const [authorizingTx, setAuthorizingTx] = useState<string | null>(null);
   
   // Web3 State
-  const [account, setAccount] = useState<string | null>(null);
+  const { address: account, isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider('eip155');
   const [balance, setBalance] = useState<string>('0');
   const [ethBalance, setEthBalance] = useState<string>('0');
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isBalancesDecrypted, setIsBalancesDecrypted] = useState(false);
+
+  useEffect(() => {
+    if (isConnected && account && walletProvider) {
+      const provider = new BrowserProvider(walletProvider as any);
+      fetchBalance(account, provider);
+    } else {
+      setBalance('0');
+      setEthBalance('0');
+    }
+  }, [isConnected, account, walletProvider]);
 
   const fetchBalance = async (address: string, provider: BrowserProvider) => {
     try {
@@ -45,9 +58,9 @@ function Dashboard({ goBack }: { goBack: () => void }) {
   };
 
   const handleDecryptBalances = async () => {
-    if (!account) return;
+    if (!account || !walletProvider) return;
     try {
-      const provider = new BrowserProvider((window as any).ethereum);
+      const provider = new BrowserProvider(walletProvider as any);
       const signer = await provider.getSigner();
       await signer.signMessage("Authenticate to decrypt and view your FHE shielded balances on Velum Protocol.");
       setIsBalancesDecrypted(true);
@@ -67,53 +80,8 @@ function Dashboard({ goBack }: { goBack: () => void }) {
 
 
 
-  const connectWallet = async () => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      try {
-        setIsConnecting(true);
-        
-        // Enforce Sepolia Network (Chain ID: 0xaa36a7)
-        const chainId = await (window as any).ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== '0xaa36a7') {
-          try {
-            await (window as any).ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0xaa36a7' }],
-            });
-          } catch (switchError) {
-            console.error("Failed to switch to Sepolia", switchError);
-            alert("Please switch your wallet to the Sepolia testnet to use VELUM.");
-            return;
-          }
-        }
-        
-        // Force MetaMask to show the account selection modal
-        await (window as any).ethereum.request({
-          method: 'wallet_requestPermissions',
-          params: [{ eth_accounts: {} }]
-        });
-        
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts'
-        });
-        
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-          const provider = new BrowserProvider((window as any).ethereum);
-          await fetchBalance(accounts[0], provider);
-        }
-      } catch (err) {
-        console.error("Failed to connect wallet", err);
-      } finally {
-        setIsConnecting(false);
-      }
-    } else {
-      alert("Please install MetaMask to connect.");
-    }
-  };
-
   const handleTransfer = async () => {
-    if (!account) {
+    if (!account || !walletProvider) {
       alert("Please connect your wallet to send transactions.");
       return;
     }
@@ -122,24 +90,13 @@ function Dashboard({ goBack }: { goBack: () => void }) {
     setIsTransferring(true);
     
     try {
-      // Trigger actual MetaMask Transaction to generate a real, fresh Etherscan hash!
-      let provider = new BrowserProvider((window as any).ethereum);
+      let provider = new BrowserProvider(walletProvider as any);
       
       const network = await provider.getNetwork();
       if (network.chainId !== 11155111n) {
-        try {
-          await (window as any).ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xaa36a7' }],
-          });
-          // Re-initialize provider to ensure ethers picks up the new network
-          provider = new BrowserProvider((window as any).ethereum);
-        } catch (switchError) {
-          console.error(switchError);
-          alert("Failed to automatically switch to Sepolia. Please switch manually in MetaMask.");
-          setIsTransferring(false);
-          return;
-        }
+        alert("Please switch your wallet to the Sepolia testnet via the AppKit modal.");
+        setIsTransferring(false);
+        return;
       }
       
       const signer = await provider.getSigner();
@@ -186,7 +143,7 @@ function Dashboard({ goBack }: { goBack: () => void }) {
   };
 
   const handleAuthorize = async (txId: string) => {
-    if (!account) {
+    if (!account || !walletProvider) {
       alert("Please connect your wallet to authorize decryption.");
       return;
     }
@@ -194,24 +151,13 @@ function Dashboard({ goBack }: { goBack: () => void }) {
     setAuthorizingTx(txId);
     
     try {
-      // Trigger MetaMask Signature Request
-      let provider = new BrowserProvider((window as any).ethereum);
+      let provider = new BrowserProvider(walletProvider as any);
       
       const network = await provider.getNetwork();
       if (network.chainId !== 11155111n) {
-        try {
-          await (window as any).ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xaa36a7' }],
-          });
-          // Re-initialize provider to ensure ethers picks up the new network
-          provider = new BrowserProvider((window as any).ethereum);
-        } catch (switchError) {
-          console.error(switchError);
-          alert("Failed to automatically switch to Sepolia. Please switch manually in MetaMask.");
-          setAuthorizingTx(null);
-          return;
-        }
+        alert("Please switch your wallet to the Sepolia testnet via the AppKit modal.");
+        setAuthorizingTx(null);
+        return;
       }
       
       const signer = await provider.getSigner();
@@ -259,28 +205,7 @@ function Dashboard({ goBack }: { goBack: () => void }) {
           </button>
           
           <div className="flex items-center gap-2">
-            {account ? (
-              <div className="flex items-center gap-2">
-                <span className="border border-terminal-yellow bg-terminal-yellow text-black px-2 md:px-4 py-1 text-xs md:text-sm font-bold">
-                  {account.slice(0, 6)}...{account.slice(-4)}
-                </span>
-                <button 
-                  onClick={() => setAccount(null)}
-                  className="border border-terminal-dim text-terminal-dim hover:border-red-500 hover:text-red-500 transition-colors px-2 py-1 text-xs md:text-sm"
-                  title="Disconnect Wallet"
-                >
-                  [X]
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={connectWallet}
-                disabled={isConnecting}
-                className="border border-terminal-yellow text-terminal-yellow hover:bg-terminal-yellow hover:text-black transition-colors px-4 py-1.5 disabled:opacity-50 text-xs md:text-sm font-bold uppercase tracking-wider"
-              >
-                {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
-              </button>
-            )}
+            <appkit-button balance="hide" />
           </div>
         </div>
 
