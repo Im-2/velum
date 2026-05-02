@@ -2,8 +2,9 @@ import { createAppKit } from '@reown/appkit/react';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 import { sepolia } from '@reown/appkit/networks';
 
-// Get Project ID from environment variable
-const projectId = import.meta.env.VITE_REOWN_PROJECT_ID;
+// Get Project ID from environment variable or fallback to the provided one
+// (Vercel ignores committed .env files, so the fallback ensures it works on the live site)
+const projectId = import.meta.env.VITE_REOWN_PROJECT_ID || '0db65466c8234b21dc3b9c17dd1ec002';
 
 if (!projectId) {
   throw new Error('VITE_REOWN_PROJECT_ID is not set in the environment variables');
