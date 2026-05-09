@@ -17,6 +17,33 @@ const INITIAL_TXS = [
 ];
 
 function Dashboard({ goBack }: { goBack: () => void }) {
+  const [bootLog, setBootLog] = useState<string[]>([]);
+  const [isBooted, setIsBooted] = useState(false);
+
+  const bootSequence = [
+    "INITIALIZING SECURE KERNEL... [OK]",
+    "ESTABLISHING FHE SHIELD... [OK]",
+    "CONNECTING TO ZAMA NETWORK... [OK]",
+    "MOUNTING ENCRYPTED VOLUMES... [OK]",
+    "BYPASSING STANDARD PROTOCOLS... [OK]",
+    "ACCESS GRANTED."
+  ];
+
+  useEffect(() => {
+    let active = true;
+    const runBoot = async () => {
+      for (let i = 0; i < bootSequence.length; i++) {
+        await new Promise(r => setTimeout(r, 300 + Math.random() * 300));
+        if (!active) return;
+        setBootLog(prev => [...prev, bootSequence[i]]);
+      }
+      await new Promise(r => setTimeout(r, 500));
+      if (!active) return;
+      setIsBooted(true);
+    };
+    runBoot();
+    return () => { active = false; };
+  }, []);
 
   const [sendAmount, setSendAmount] = useState('');
   const [sendTo, setSendTo] = useState('');
@@ -181,8 +208,29 @@ function Dashboard({ goBack }: { goBack: () => void }) {
     }
   };
 
+  if (!isBooted) {
+    return (
+      <div className="min-h-screen w-full p-4 md:p-8 flex flex-col gap-2 font-mono text-sm bg-black text-terminal-yellow">
+        <div className="mb-4">
+          <pre className="text-terminal-yellow text-[10px] md:text-sm leading-none select-none">
+{`
+ VELUM OS v1.0.0
+ (c) 2026 Velum Protocol
+`}
+          </pre>
+        </div>
+        {bootLog.map((log, i) => (
+          <div key={i}>{'> '}{log}</div>
+        ))}
+        {bootLog.length < bootSequence.length && (
+          <div className="animate-pulse">{'> _'}</div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen w-full p-4 md:p-8 flex flex-col gap-6 font-mono text-sm relative bg-black">
+    <div className="min-h-screen w-full p-4 md:p-8 flex flex-col gap-6 font-mono text-sm relative bg-black animate-[fadeIn_1s_ease-in-out]">
       {/* Grid Background */}
       <div 
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.07]" 
